@@ -517,29 +517,43 @@ const S = {
 const DPTO = {20: "Cesar", 44: "La Guajira", 86: "Putumayo"};
 let MPIO_NAMES = {};
 
-let DATA_PATH = "data/";
+// ═══════════════════════════════════════════════════
+// ASSET LOADER (Auto-detects data/ or web_dashboard/data/)
+// ═══════════════════════════════════════════════════
+async function fetchAsset(filename){
+  const isSub = window.location.pathname.includes('/web_dashboard');
+  const candidates = isSub 
+    ? ['data/' + filename, 'web_dashboard/data/' + filename]
+    : ['web_dashboard/data/' + filename, 'data/' + filename];
+  
+  for(const path of candidates){
+    try{
+      const res = await fetch(path);
+      if(res.ok){
+        const contentType = res.headers.get("content-type") || "";
+        if(!contentType.includes("text/html")){
+          return await res.json();
+        }
+      }
+    }catch(e){}
+  }
+  throw new Error(`No se encontró el archivo '${filename}'.`);
+}
 
 // ═══════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════
 async function init(){
   try{
-    setMsg("Cargando catálogo...");
-    let metaR;
-    try {
-      metaR = await fetch(DATA_PATH + "meta.json");
-      if(!metaR.ok) throw new Error("Not in data/");
-    } catch(err){
-      DATA_PATH = "web_dashboard/data/";
-      metaR = await fetch(DATA_PATH + "meta.json");
-    }
-    const [geoR, mapR] = await Promise.all([
-      fetch(DATA_PATH + "municipios_3dptos.geojson"),
-      fetch(DATA_PATH + "dim_map.json"),
+    setMsg("Cargando catálogo de indicadores...");
+    const [meta, geo, dimMap] = await Promise.all([
+      fetchAsset("meta.json"),
+      fetchAsset("municipios_3dptos.geojson"),
+      fetchAsset("dim_map.json")
     ]);
-    S.meta   = await metaR.json();
-    S.geo    = await geoR.json();
-    S.dimMap = await mapR.json();
+    S.meta   = meta;
+    S.geo    = geo;
+    S.dimMap = dimMap;
 
     // Municipality names
     Object.assign(MPIO_NAMES, S.meta.meta.municipios || {});
@@ -599,8 +613,7 @@ async function loadDimData(dim){
   if(!fname) return;
   showDimLoading(true);
   try{
-    const r = await fetch(DATA_PATH + fname);
-    const d = await r.json();
+    const d = await fetchAsset(fname);
     let raw = d.datos || d;
     if(Array.isArray(raw) && raw.length > 0 && Array.isArray(raw[0])){
       // Array of arrays: [id, dp, mp, anio, cat, val, pct]
