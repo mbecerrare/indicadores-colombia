@@ -3,7 +3,7 @@
 
 Dashboard interactivo de indicadores sociales, económicos y ambientales para los tres departamentos del proyecto ICSI.
 
-**🌐 [Ver Dashboard en vivo](https://TU-USUARIO.github.io/TU-REPOSITORIO)**
+** [Ver Dashboard en vivo](https://TU-USUARIO.github.io/TU-REPOSITORIO)**
 
 ---
 
