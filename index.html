@@ -517,16 +517,25 @@ const S = {
 const DPTO = {20: "Cesar", 44: "La Guajira", 86: "Putumayo"};
 let MPIO_NAMES = {};
 
+let DATA_PATH = "data/";
+
 // ═══════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════
 async function init(){
   try{
     setMsg("Cargando catálogo...");
-    const [metaR, geoR, mapR] = await Promise.all([
-      fetch("data/meta.json"),
-      fetch("data/municipios_3dptos.geojson"),
-      fetch("data/dim_map.json"),
+    let metaR;
+    try {
+      metaR = await fetch(DATA_PATH + "meta.json");
+      if(!metaR.ok) throw new Error("Not in data/");
+    } catch(err){
+      DATA_PATH = "web_dashboard/data/";
+      metaR = await fetch(DATA_PATH + "meta.json");
+    }
+    const [geoR, mapR] = await Promise.all([
+      fetch(DATA_PATH + "municipios_3dptos.geojson"),
+      fetch(DATA_PATH + "dim_map.json"),
     ]);
     S.meta   = await metaR.json();
     S.geo    = await geoR.json();
@@ -589,10 +598,29 @@ async function loadDimData(dim){
   const fname = S.dimMap[dim];
   if(!fname) return;
   showDimLoading(true);
-  const r = await fetch("data/" + fname);
-  const d = await r.json();
-  S.dimCache[dim] = d.datos;
-  showDimLoading(false);
+  try{
+    const r = await fetch(DATA_PATH + fname);
+    const d = await r.json();
+    let raw = d.datos || d;
+    if(Array.isArray(raw) && raw.length > 0 && Array.isArray(raw[0])){
+      // Array of arrays: [id, dp, mp, anio, cat, val, pct]
+      S.dimCache[dim] = raw.map(r => ({
+        id_indicador: r[0],
+        codigo_dpto:  r[1],
+        codigo_mpio:  r[2],
+        anio:         r[3],
+        categoria:    r[4],
+        valor:        r[5],
+        porcentaje:   r[6]
+      }));
+    } else {
+      S.dimCache[dim] = raw;
+    }
+  }catch(e){
+    console.error("Error loading " + dim, e);
+  } finally {
+    showDimLoading(false);
+  }
 }
 
 function showDimLoading(v){
