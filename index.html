@@ -1,13 +1,1069 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0;url=web_dashboard/index.html">
-    <title>Indicadores Colombia</title>
-  </head>
-  <body>
-    <p>Redirigiendo al dashboard... 
-       <a href="web_dashboard/index.html">Haz clic aquí si no redirige</a>
-    </p>
-  </body>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Indicadores — Putumayo · Cesar · La Guajira</title>
+<meta name="description" content="Dashboard interactivo de indicadores sociales, económicos y ambientales para Putumayo, Cesar y La Guajira, Colombia.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#0D9488;
+  --teal-hover:#0F766E;
+  --teal-light:#F0FDFA;
+  --teal-border:#CCFBF1;
+  --amber:#D97706;
+  --amber-light:#FEF3C7;
+  --red:#DC2626;
+  --red-light:#FEE2E2;
+  --bg:#F8FAFC;
+  --surface:#FFFFFF;
+  --card:#FFFFFF;
+  --border:#E2E8F0;
+  --border-subtle:#F1F5F9;
+  --text:#1E293B;
+  --text-heading:#0F172A;
+  --muted:#64748B;
+  --radius:10px;
+  --shadow:0 1px 3px 0 rgba(0,0,0,0.05),0 1px 2px -1px rgba(0,0,0,0.05);
+  --shadow-md:0 4px 6px -1px rgba(0,0,0,0.07),0 2px 4px -2px rgba(0,0,0,0.05);
+  --shadow-lg:0 10px 15px -3px rgba(0,0,0,0.08),0 4px 6px -4px rgba(0,0,0,0.04);
+}
+html{font-size:14px}
+body{
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* HEADER */
+header{
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  border-top:3px solid var(--teal);
+  padding:0 24px;
+  height:64px;
+  display:flex;
+  align-items:center;
+  gap:16px;
+  position:sticky;
+  top:0;
+  z-index:1000;
+  box-shadow:var(--shadow);
+}
+.logo-icon{
+  width:36px;
+  height:36px;
+  background:var(--teal-light);
+  border:1px solid var(--teal-border);
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--teal);
+  flex-shrink:0;
+}
+.logo-icon svg{width:20px;height:20px;fill:currentColor}
+header h1{
+  font-size:1.05rem;
+  font-weight:700;
+  color:var(--text-heading);
+  flex:1;
+  letter-spacing:-0.01em;
+}
+.hbadge{
+  font-size:.72rem;
+  font-weight:600;
+  padding:4px 12px;
+  background:var(--teal-light);
+  border:1px solid var(--teal-border);
+  border-radius:20px;
+  color:var(--teal-hover);
+  white-space:nowrap;
+}
+
+/* FILTER BAR */
+.fbar{
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:12px 24px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex-wrap:wrap;
+}
+.flabel{
+  font-size:.72rem;
+  font-weight:600;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+select{
+  background:var(--surface);
+  border:1px solid var(--border);
+  color:var(--text);
+  padding:7px 12px;
+  border-radius:6px;
+  font-size:.85rem;
+  font-family:inherit;
+  cursor:pointer;
+  transition:all .15s ease;
+  outline:none;
+}
+select:hover{border-color:#CBD5E1}
+select:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,0.15)}
+.fdiv{width:1px;height:22px;background:var(--border)}
+input[type=range]{
+  -webkit-appearance:none;
+  width:90px;
+  height:5px;
+  background:#CBD5E1;
+  border-radius:3px;
+  cursor:pointer;
+  outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:15px;
+  height:15px;
+  background:var(--teal);
+  border-radius:50%;
+  border:2px solid #FFFFFF;
+  box-shadow:0 1px 3px rgba(0,0,0,0.2);
+  transition:transform .1s;
+}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+.ydisplay{
+  min-width:38px;
+  text-align:center;
+  font-weight:700;
+  color:var(--text-heading);
+  font-size:.85rem;
+}
+.btn-reset{
+  margin-left:auto;
+  background:var(--surface);
+  border:1px solid var(--border);
+  color:var(--muted);
+  padding:6px 14px;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:.8rem;
+  font-weight:500;
+  font-family:inherit;
+  transition:all .15s ease;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.btn-reset:hover{
+  border-color:#CBD5E1;
+  color:var(--text-heading);
+  background:var(--bg);
+}
+
+/* TABS */
+.tabs-wrap{
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:0 24px;
+  overflow-x:auto;
+}
+.tabs{display:flex;list-style:none;min-width:max-content}
+.tab-btn{
+  padding:14px 18px;
+  background:transparent;
+  border:none;
+  color:var(--muted);
+  cursor:pointer;
+  font-size:.84rem;
+  font-weight:500;
+  font-family:inherit;
+  border-bottom:2px solid transparent;
+  transition:all .15s ease;
+  white-space:nowrap;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.tab-btn:hover{color:var(--text-heading);background:rgba(241,245,249,0.5)}
+.tab-btn.active{
+  color:var(--teal);
+  font-weight:600;
+  border-bottom-color:var(--teal);
+}
+.tab-count{
+  font-size:.7rem;
+  color:var(--muted);
+  font-weight:400;
+}
+
+/* MAIN */
+main{padding:20px 24px;display:flex;flex-direction:column;gap:16px}
+
+/* INDICATOR ROW */
+.ind-row{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.ind-sel-wrap{flex:0 0 320px}
+.ind-sel-wrap label{
+  display:block;
+  font-size:.72rem;
+  font-weight:600;
+  color:var(--muted);
+  margin-bottom:6px;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+#indicator-select{
+  width:100%;
+  background:var(--surface);
+  border:1px solid var(--border);
+  color:var(--text-heading);
+  padding:10px 12px;
+  border-radius:6px;
+  font-size:.85rem;
+  font-family:inherit;
+  cursor:pointer;
+  box-shadow:var(--shadow);
+}
+#indicator-select:focus{
+  border-color:var(--teal);
+  outline:none;
+  box-shadow:0 0 0 3px rgba(13,148,136,0.15);
+}
+
+/* FICHA */
+.ficha{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-left:4px solid var(--teal);
+  border-radius:var(--radius);
+  padding:14px 18px;
+  flex:1;
+  min-width:280px;
+  box-shadow:var(--shadow);
+  display:none;
+}
+.ficha.visible{display:block}
+.ficha-title{font-size:.95rem;font-weight:700;color:var(--text-heading);margin-bottom:4px}
+.ficha-def{
+  font-size:.8rem;
+  color:var(--muted);
+  line-height:1.55;
+  margin-bottom:10px;
+  border-bottom:1px solid var(--border-subtle);
+  padding-bottom:10px;
+}
+.ficha-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px}
+.fi{font-size:.78rem}
+.fi strong{
+  display:block;
+  color:var(--muted);
+  font-size:.68rem;
+  font-weight:600;
+  text-transform:uppercase;
+  margin-bottom:1px;
+}
+.fi a{color:var(--teal);text-decoration:none;font-weight:500}
+.fi a:hover{text-decoration:underline}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px}
+.stat-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:14px 16px;
+  box-shadow:var(--shadow);
+  transition:all .15s ease;
+}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.stat-label{font-size:.68rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.stat-value{font-size:1.45rem;font-weight:700;color:var(--text-heading);line-height:1.1}
+.stat-sub{font-size:.7rem;color:var(--muted);margin-top:3px}
+.stat-card.teal .stat-value{color:var(--teal)}
+.stat-card.amber .stat-value{color:var(--amber)}
+
+/* CONTENT GRID */
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:920px){.cgrid{grid-template-columns:1fr}}
+
+/* CARD */
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  box-shadow:var(--shadow);
+}
+.card-header{
+  padding:12px 18px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  background:#FAFBFD;
+}
+.card-title{font-size:.88rem;font-weight:600;color:var(--text-heading)}
+.card-sub{font-size:.72rem;color:var(--muted)}
+.card-body{padding:16px}
+
+/* MAP */
+#map{height:340px;background:#F1F5F9}
+.leaflet-container{background:#F1F5F9!important;font-family:inherit}
+.map-leg{
+  padding:8px 16px;
+  background:var(--surface);
+  border-top:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.leg-bar{
+  height:8px;
+  border-radius:4px;
+  flex:1;
+  background:linear-gradient(90deg,#E2E8F0,#0D9488);
+}
+.leg-val{font-size:.72rem;font-weight:600;color:var(--muted);white-space:nowrap}
+
+/* CHART */
+.chart-wrap{position:relative;height:300px}
+
+/* TABLE */
+.tbl-wrap{overflow:auto;max-height:320px}
+table{width:100%;border-collapse:collapse;font-size:.8rem}
+thead th{
+  background:#F8FAFC;
+  color:var(--muted);
+  padding:9px 14px;
+  text-align:left;
+  position:sticky;
+  top:0;
+  z-index:1;
+  font-size:.7rem;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  border-bottom:1px solid var(--border);
+}
+tbody tr{border-bottom:1px solid var(--border-subtle);transition:background .1s ease}
+tbody tr:hover{background:#F8FAFC}
+tbody td{padding:9px 14px;color:var(--text)}
+.vp{color:var(--teal);font-weight:600}
+.vn{color:var(--red);font-weight:600}
+.tbl-search{padding:10px 16px;border-bottom:1px solid var(--border);background:#FAFBFD}
+.tbl-search input{
+  width:100%;
+  background:var(--surface);
+  border:1px solid var(--border);
+  color:var(--text);
+  padding:7px 12px;
+  border-radius:6px;
+  font-size:.82rem;
+  font-family:inherit;
+  outline:none;
+}
+.tbl-search input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,0.15)}
+
+/* EXPORT BTN */
+.btn-exp{
+  background:var(--surface);
+  border:1px solid var(--border);
+  color:var(--text-heading);
+  padding:5px 12px;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:.74rem;
+  font-weight:500;
+  font-family:inherit;
+  transition:all .15s ease;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+}
+.btn-exp:hover{
+  background:var(--teal-light);
+  border-color:var(--teal);
+  color:var(--teal-hover);
+}
+
+/* LOADING */
+#loading{
+  position:fixed;
+  inset:0;
+  background:rgba(248,250,252,0.92);
+  backdrop-filter:blur(4px);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+  gap:14px;
+}
+.spinner{
+  width:42px;
+  height:42px;
+  border:3px solid #E2E8F0;
+  border-top-color:var(--teal);
+  border-radius:50%;
+  animation:spin .75s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-txt{color:var(--muted);font-size:.9rem;font-weight:500}
+.dim-loading{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:180px;
+  color:var(--muted);
+  font-size:.85rem;
+  gap:10px;
+}
+.dim-spinner{
+  width:20px;
+  height:20px;
+  border:2.5px solid #E2E8F0;
+  border-top-color:var(--teal);
+  border-radius:50%;
+  animation:spin .75s linear infinite;
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#94A3B8}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div class="load-txt" id="load-msg">Cargando catálogo de indicadores...</div>
+</div>
+
+<header>
+  <div class="logo-icon">
+    <svg viewBox="0 0 24 24"><path d="M4 9h4v11H4zm6-5h4v16h-4zm6 8h4v8h-4z"/></svg>
+  </div>
+  <h1>Indicadores de Desarrollo — Putumayo · Cesar · La Guajira</h1>
+  <span class="hbadge" id="badge">Cargando...</span>
+</header>
+
+<div class="fbar">
+  <span class="flabel">Departamento</span>
+  <select id="f-dpto">
+    <option value="">Todos los Departamentos</option>
+    <option value="20">Cesar</option>
+    <option value="44">La Guajira</option>
+    <option value="86">Putumayo</option>
+  </select>
+
+  <div class="fdiv"></div>
+
+  <span class="flabel">Municipio</span>
+  <select id="f-mpio">
+    <option value="">Todos los Municipios</option>
+  </select>
+
+  <div class="fdiv"></div>
+
+  <span class="flabel">Período</span>
+  <span class="ydisplay" id="y-from">2000</span>
+  <input type="range" id="yr-from" min="1990" max="2025" value="2000">
+  <span class="flabel">—</span>
+  <input type="range" id="yr-to" min="1990" max="2025" value="2025">
+  <span class="ydisplay" id="y-to">2025</span>
+
+  <button class="btn-reset" id="btn-reset">Restablecer Filtros</button>
+</div>
+
+<div class="tabs-wrap">
+  <ul class="tabs" id="tabs"></ul>
+</div>
+
+<main id="main"></main>
+
+<script>
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+const S = {
+  meta: null, 
+  geo: null,
+  dimCache: {},          // loaded dim data cache
+  dimMap: {},            // dim name -> filename
+  dim: null, 
+  ind: null,
+  dpto: "", 
+  mpio: "", 
+  yFrom: 2000, 
+  yTo: 2025,
+  chart: null, 
+  map: null, 
+  mapLayer: null,
+};
+
+const DPTO = {20: "Cesar", 44: "La Guajira", 86: "Putumayo"};
+let MPIO_NAMES = {};
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+async function init(){
+  try{
+    setMsg("Cargando catálogo...");
+    const [metaR, geoR, mapR] = await Promise.all([
+      fetch("data/meta.json"),
+      fetch("data/municipios_3dptos.geojson"),
+      fetch("data/dim_map.json"),
+    ]);
+    S.meta   = await metaR.json();
+    S.geo    = await geoR.json();
+    S.dimMap = await mapR.json();
+
+    // Municipality names
+    Object.assign(MPIO_NAMES, S.meta.meta.municipios || {});
+    (S.geo.features || []).forEach(f => {
+      const p = f.properties;
+      MPIO_NAMES[p.codigo_mpio] = p.nombre_mpio;
+    });
+
+    buildTabs();
+    setupFilters();
+    document.getElementById("badge").textContent =
+      `${S.meta.meta.total_indicadores} Indicadores · ${Object.keys(S.meta.dimensiones).length} Dimensiones`;
+    document.getElementById("loading").style.display = "none";
+    
+    // Select first tab
+    document.querySelector(".tab-btn")?.click();
+  } catch(e){
+    setMsg("Error: " + e.message + " — Verifica que los archivos estén en la carpeta data/");
+    console.error(e);
+  }
+}
+
+function setMsg(m){ document.getElementById("load-msg").textContent = m; }
+
+// ═══════════════════════════════════════════════════
+// TABS (Sin emoticones)
+// ═══════════════════════════════════════════════════
+function buildTabs(){
+  const ul = document.getElementById("tabs");
+  ul.innerHTML = "";
+  Object.keys(S.meta.dimensiones).forEach((dim, i) => {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.className = "tab-btn" + (i === 0 ? " active" : "");
+    btn.dataset.dim = dim;
+    const n = S.meta.dimensiones[dim].total_registros.toLocaleString("es-CO");
+    btn.innerHTML = `${dim} <span class="tab-count">(${n})</span>`;
+    btn.onclick = () => selectDim(dim, btn);
+    li.appendChild(btn);
+    ul.appendChild(li);
+  });
+}
+
+async function selectDim(dim, btn){
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  S.dim = dim; 
+  S.ind = null;
+  renderShell(dim);
+  await loadDimData(dim);
+  populateIndicatorSelect(dim);
+}
+
+async function loadDimData(dim){
+  if(S.dimCache[dim]) return;
+  const fname = S.dimMap[dim];
+  if(!fname) return;
+  showDimLoading(true);
+  const r = await fetch("data/" + fname);
+  const d = await r.json();
+  S.dimCache[dim] = d.datos;
+  showDimLoading(false);
+}
+
+function showDimLoading(v){
+  const el = document.getElementById("dim-loading");
+  if(el) el.style.display = v ? "flex" : "none";
+}
+
+// ═══════════════════════════════════════════════════
+// SHELL
+// ═══════════════════════════════════════════════════
+function renderShell(dim){
+  const m = document.getElementById("main");
+  m.innerHTML = `
+  <div class="ind-row">
+    <div class="ind-sel-wrap">
+      <label>Seleccionar Indicador</label>
+      <select id="indicator-select"><option value="">-- Selecciona un indicador --</option></select>
+    </div>
+    <div class="ficha" id="ficha"></div>
+  </div>
+  <div class="dim-loading" id="dim-loading" style="display:none">
+    <div class="dim-spinner"></div> Cargando datos de ${dim}...
+  </div>
+  <div class="stats-row" id="stats"></div>
+  <div class="cgrid">
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Mapa Coroplético</div><div class="card-sub" id="map-sub">Selecciona un indicador</div></div>
+      </div>
+      <div id="map"></div>
+      <div class="map-leg">
+        <span class="leg-val" id="leg-min">—</span>
+        <div class="leg-bar"></div>
+        <span class="leg-val" id="leg-max">—</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title" id="chart-title">Visualización Gráfica</div><div class="card-sub" id="chart-sub">Selecciona un indicador</div></div>
+        <button class="btn-exp" id="btn-csv">Exportar CSV</button>
+      </div>
+      <div class="card-body"><div class="chart-wrap"><canvas id="main-chart"></canvas></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Tabla Detallada de Datos</div>
+      <button class="btn-exp" id="btn-csv2">Exportar CSV</button>
+    </div>
+    <div class="tbl-search"><input type="text" id="tbl-search" placeholder="Filtrar por texto o año en la tabla..."></div>
+    <div class="tbl-wrap"><table id="dtable"><thead><tr></tr></thead><tbody></tbody></table></div>
+  </div>`;
+
+  document.getElementById("btn-csv")?.addEventListener("click", doExport);
+  document.getElementById("btn-csv2")?.addEventListener("click", doExport);
+  document.getElementById("tbl-search")?.addEventListener("input", e => searchTable(e.target.value));
+  initMap();
+}
+
+// ═══════════════════════════════════════════════════
+// INDICATOR SELECT
+// ═══════════════════════════════════════════════════
+function populateIndicatorSelect(dim){
+  const sel = document.getElementById("indicator-select");
+  if(!sel) return;
+  sel.innerHTML = `<option value="">-- Selecciona un indicador --</option>`;
+  const cat = S.meta.dimensiones[dim]?.catalogo_indicadores || [];
+  cat.forEach(ind => {
+    const o = document.createElement("option");
+    o.value = ind.id;
+    o.textContent = `[${ind.id}] ${ind.nombre}`;
+    sel.appendChild(o);
+  });
+  sel.onchange = () => {
+    const id = sel.value; 
+    if(!id) return;
+    S.ind = cat.find(i => i.id === id);
+    renderIndicator();
+  };
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER INDICATOR
+// ═══════════════════════════════════════════════════
+function renderIndicator(){
+  if(!S.ind || !S.dim) return;
+  const rows = filtered();
+  renderFicha(S.ind);
+  renderStats(rows, S.ind);
+  const yrs = [...new Set(rows.map(r => r.anio).filter(Boolean))].sort((a,b)=>a-b);
+  if(yrs.length > 1) renderLine(rows, S.ind, yrs);
+  else               renderBar(rows, S.ind);
+  updateMap(rows, S.ind);
+  renderTable(rows, S.ind);
+}
+
+function filtered(){
+  const all = S.dimCache[S.dim] || [];
+  return all.filter(r => {
+    if(r.id_indicador !== S.ind?.id) return false;
+    if(S.dpto && String(r.codigo_dpto) !== S.dpto) return false;
+    if(S.mpio && String(r.codigo_mpio) !== S.mpio) return false;
+    if(r.anio != null && (r.anio < S.yFrom || r.anio > S.yTo)) return false;
+    return true;
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// FICHA
+// ═══════════════════════════════════════════════════
+function renderFicha(ind){
+  const el = document.getElementById("ficha");
+  if(!el) return;
+  el.className = "ficha visible";
+  el.innerHTML = `
+    <div class="ficha-title">${ind.nombre} <span style="color:var(--muted);font-size:.78rem;font-weight:500">(${ind.id})</span></div>
+    <div class="ficha-def">${ind.definicion || "Sin definición disponible."}</div>
+    <div class="ficha-grid">
+      <div class="fi"><strong>Unidad de Medida</strong>${ind.unidad || "N/D"}</div>
+      <div class="fi"><strong>Frecuencia</strong>${ind.frecuencia || "N/D"}</div>
+      <div class="fi"><strong>Fuente Oficial</strong>${ind.fuente || "N/D"}</div>
+      <div class="fi"><strong>Enlace de Consulta</strong>${ind.enlace ? `<a href="${ind.enlace}" target="_blank" rel="noopener noreferrer">Consultar fuente</a>` : "N/D"}</div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════════════════
+function renderStats(rows, ind){
+  const el = document.getElementById("stats");
+  if(!el) return;
+  const vals = rows.map(r => +r.valor).filter(v => !isNaN(v));
+  const yrs = [...new Set(rows.map(r => r.anio).filter(Boolean))].sort((a,b)=>a-b);
+  const mpios = [...new Set(rows.map(r => r.codigo_mpio).filter(Boolean))];
+  const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  
+  el.innerHTML = `
+    <div class="stat-card teal"><div class="stat-label">Registros</div><div class="stat-value">${rows.length.toLocaleString("es-CO")}</div><div class="stat-sub">filas filtradas</div></div>
+    <div class="stat-card"><div class="stat-label">Municipios</div><div class="stat-value">${mpios.length}</div><div class="stat-sub">con datos</div></div>
+    <div class="stat-card"><div class="stat-label">Promedio</div><div class="stat-value">${avg != null ? fmt(avg) : "—"}</div><div class="stat-sub">${ind.unidad || ""}</div></div>
+    <div class="stat-card"><div class="stat-label">Mínimo</div><div class="stat-value">${vals.length ? fmt(Math.min(...vals)) : "—"}</div><div class="stat-sub">${ind.unidad || ""}</div></div>
+    <div class="stat-card amber"><div class="stat-label">Máximo</div><div class="stat-value">${vals.length ? fmt(Math.max(...vals)) : "—"}</div><div class="stat-sub">${ind.unidad || ""}</div></div>
+    <div class="stat-card"><div class="stat-label">Período</div><div class="stat-value" style="font-size:1.1rem">${yrs.length ? yrs[0] + "–" + yrs[yrs.length - 1] : "—"}</div><div class="stat-sub">${yrs.length} años</div></div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════════════
+function killChart(){ if(S.chart){ S.chart.destroy(); S.chart = null; } }
+const CLR = ["#0D9488", "#D97706", "#2563EB", "#7C3AED", "#DC2626", "#059669"];
+
+function renderLine(rows, ind, yrs){
+  killChart();
+  document.getElementById("chart-title").textContent = "Evolución Temporal";
+  document.getElementById("chart-sub").textContent = ind.unidad || "";
+  const byDpto = {};
+  rows.forEach(r => {
+    const d = DPTO[r.codigo_dpto] || String(r.codigo_dpto);
+    if(!byDpto[d]) byDpto[d] = {};
+    if(!byDpto[d][r.anio]) byDpto[d][r.anio] = [];
+    if(r.valor != null) byDpto[d][r.anio].push(+r.valor);
+  });
+  const ds = Object.keys(byDpto).map((lbl, i) => ({
+    label: lbl,
+    data: yrs.map(y => {
+      const a = (byDpto[lbl][y] || []).filter(v => !isNaN(v));
+      return a.length ? a.reduce((x, b) => x + b, 0) / a.length : null;
+    }),
+    borderColor: CLR[i % CLR.length],
+    backgroundColor: CLR[i % CLR.length] + "1A",
+    tension: .35,
+    pointRadius: 4,
+    pointHoverRadius: 7,
+    fill: false,
+    spanGaps: true,
+  }));
+  S.chart = new Chart(document.getElementById("main-chart").getContext("2d"), {
+    type: "line",
+    data: {labels: yrs, datasets: ds},
+    options: cOpts(ind.unidad || ""),
+  });
+}
+
+function renderBar(rows, ind){
+  killChart();
+  document.getElementById("chart-title").textContent = "Distribución por Categoría";
+  document.getElementById("chart-sub").textContent = ind.unidad || "";
+  const catM = {};
+  rows.forEach(r => {
+    const c = r.categoria || "Total";
+    if(!catM[c]) catM[c] = [];
+    if(r.valor != null) catM[c].push(+r.valor);
+  });
+  const labs = Object.keys(catM).slice(0, 20);
+  const vals = labs.map(c => {
+    const a = catM[c].filter(v => !isNaN(v));
+    return a.length ? a.reduce((x, b) => x + b, 0) / a.length : 0;
+  });
+  const horiz = labs.length > 5;
+  S.chart = new Chart(document.getElementById("main-chart").getContext("2d"), {
+    type: "bar",
+    data: {
+      labels: labs,
+      datasets: [{
+        label: ind.unidad || "Valor",
+        data: vals,
+        backgroundColor: vals.map(v => v >= 0 ? "#0D9488CC" : "#DC2626CC"),
+        borderColor: vals.map(v => v >= 0 ? "#0D9488" : "#DC2626"),
+        borderWidth: 1,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      ...cOpts(ind.unidad || "", horiz),
+      indexAxis: horiz ? "y" : "x",
+      plugins: {
+        legend: {display: false},
+        tooltip: {
+          backgroundColor: "#FFFFFF",
+          titleColor: "#0F172A",
+          bodyColor: "#475569",
+          borderColor: "#E2E8F0",
+          borderWidth: 1,
+          boxPadding: 4,
+          callbacks: { label: c => ` ${fmt(c.parsed[horiz ? "x" : "y"])} ${ind.unidad || ""}` }
+        }
+      }
+    },
+  });
+}
+
+function cOpts(unit = "", horiz = false){
+  const sc = {
+    ticks: {color: "#64748B", font: {family: "'Inter', sans-serif", size: 11}},
+    grid: {color: "#F1F5F9"}
+  };
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {intersect: false, mode: "index"},
+    plugins: {
+      legend: {labels: {color: "#334155", font: {family: "'Inter', sans-serif", size: 12}}},
+      tooltip: {
+        backgroundColor: "#FFFFFF",
+        titleColor: "#0F172A",
+        bodyColor: "#475569",
+        borderColor: "#E2E8F0",
+        borderWidth: 1,
+        boxPadding: 6,
+        cornerRadius: 6,
+      }
+    },
+    scales: {
+      x: {...sc},
+      y: {...sc, title: {display: !!unit, text: unit, color: "#94A3B8", font: {family: "'Inter', sans-serif", size: 11}}}
+    }
+  };
+}
+
+// ═══════════════════════════════════════════════════
+// MAP
+// ═══════════════════════════════════════════════════
+function initMap(){
+  if(S.map){ S.map.remove(); S.map = null; }
+  S.map = L.map("map", {center: [7.5, -73.8], zoom: 5, zoomControl: true, attributionControl: false});
+  
+  // Clean Light Basemap (CartoDB Positron)
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+    subdomains: "abcd",
+    maxZoom: 19
+  }).addTo(S.map);
+
+  if(S.geo){
+    S.mapLayer = L.geoJSON(S.geo, {
+      style: {color: "#94A3B8", weight: 1, fillColor: "#E2E8F0", fillOpacity: .6},
+      onEachFeature: (f, l) => {
+        l.on("mouseover", function(){ this.setStyle({weight: 2, color: "#0F766E", fillOpacity: .9}); });
+        l.on("mouseout", function(){ S.mapLayer.resetStyle(this); });
+      }
+    }).addTo(S.map);
+    try{ S.map.fitBounds(S.mapLayer.getBounds(), {padding: [20, 20]}); }catch(e){}
+  }
+}
+
+function updateMap(rows, ind){
+  if(!S.map || !S.mapLayer) return;
+  const agg = {};
+  rows.forEach(r => {
+    if(!r.codigo_mpio) return;
+    if(!agg[r.codigo_mpio]) agg[r.codigo_mpio] = [];
+    if(r.valor != null) agg[r.codigo_mpio].push(+r.valor);
+  });
+  const avgs = {};
+  Object.keys(agg).forEach(mp => {
+    const a = agg[mp].filter(v => !isNaN(v));
+    avgs[mp] = a.length ? a.reduce((x, b) => x + b, 0) / a.length : null;
+  });
+  const vals = Object.values(avgs).filter(v => v != null);
+  const mn = Math.min(...vals), mx = Math.max(...vals);
+  document.getElementById("leg-min").textContent = vals.length ? fmt(mn) : "—";
+  document.getElementById("leg-max").textContent = vals.length ? fmt(mx) : "—";
+
+  function col(v){
+    if(v == null || isNaN(v)) return "#E2E8F0";
+    const t = mx === mn ? .5 : (v - mn) / (mx - mn);
+    // Interpolation between #E0F2F1 (224, 242, 241) and #0D9488 (13, 148, 136)
+    const r = Math.round(224 + t * (13 - 224));
+    const g = Math.round(242 + t * (148 - 242));
+    const b = Math.round(241 + t * (136 - 241));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  S.mapLayer.setStyle(f => {
+    const v = avgs[f.properties.codigo_mpio];
+    return {
+      fillColor: col(v),
+      fillOpacity: v != null ? .85 : .35,
+      color: v != null ? "#0D9488" : "#CBD5E1",
+      weight: 1.2
+    };
+  });
+
+  S.mapLayer.eachLayer(l => {
+    const p = l.feature.properties;
+    const v = avgs[p.codigo_mpio];
+    l.unbindPopup();
+    l.bindPopup(`
+      <div style="font-family:'Inter',sans-serif;font-size:12.5px;line-height:1.4">
+        <b style="font-size:13.5px;color:#0F172A">${p.nombre_mpio}</b><br>
+        <span style="color:#64748B">${ind.nombre}</span><br>
+        <span style="color:#0D9488;font-weight:700;font-size:15px;display:inline-block;margin-top:3px">${v != null ? fmt(v) : "Sin datos"}</span>
+        ${ind.unidad ? `<span style="font-size:11px;color:#64748B"> ${ind.unidad}</span>` : ""}
+      </div>
+    `);
+  });
+
+  document.getElementById("map-sub").textContent = `Promedio por municipio · ${ind.unidad || ""}`;
+}
+
+// ═══════════════════════════════════════════════════
+// TABLE
+// ═══════════════════════════════════════════════════
+let _trows = [];
+const TCOLS = ["anio", "codigo_dpto", "codigo_mpio", "categoria", "valor", "porcentaje"];
+const THEAD = {anio: "Año", codigo_dpto: "Departamento", codigo_mpio: "Municipio", categoria: "Categoría", valor: "Valor", porcentaje: "%"};
+
+function renderTable(rows, ind){
+  _trows = rows;
+  const t = document.getElementById("dtable");
+  if(!t) return;
+  t.querySelector("thead tr").innerHTML = TCOLS.map(c => `<th>${c === "valor" ? (ind.unidad || "Valor") : THEAD[c]}</th>`).join("");
+  fillTbody(rows.slice(0, 500));
+}
+
+function fillTbody(rows){
+  const tb = document.querySelector("#dtable tbody");
+  if(!tb) return;
+  tb.innerHTML = rows.map(r => `<tr>${TCOLS.map(c => {
+    let v = r[c];
+    if(c === "codigo_dpto") v = DPTO[v] || v;
+    if(c === "codigo_mpio") v = MPIO_NAMES[v] || v;
+    if((c === "valor" || c === "porcentaje") && v != null){
+      const n = +v;
+      if(!isNaN(n)) return `<td class="${n < 0 ? "vn" : ""}">${fmt(n)}</td>`;
+    }
+    return `<td>${v != null ? v : "—"}</td>`;
+  }).join("")}</tr>`).join("");
+}
+
+function searchTable(q){
+  if(!q){ fillTbody(_trows.slice(0, 500)); return; }
+  const ql = q.toLowerCase();
+  fillTbody(_trows.filter(r => JSON.stringify(r).toLowerCase().includes(ql)).slice(0, 500));
+}
+
+// ═══════════════════════════════════════════════════
+// EXPORT CSV
+// ═══════════════════════════════════════════════════
+function doExport(){
+  if(!S.ind){ alert("Selecciona un indicador primero."); return; }
+  const rows = filtered();
+  if(!rows.length){ alert("Sin datos con los filtros actuales."); return; }
+  const hdr = ["id_indicador", "anio", "departamento", "municipio", "categoria", "valor", "porcentaje"];
+  const lines = [hdr.join(","), ...rows.map(r => [
+    r.id_indicador,
+    r.anio,
+    DPTO[r.codigo_dpto] || r.codigo_dpto,
+    MPIO_NAMES[r.codigo_mpio] || r.codigo_mpio,
+    `"${(r.categoria || "").replace(/"/g, '""')}"`,
+    r.valor ?? '',
+    r.porcentaje ?? ''
+  ].join(","))];
+  const blob = new Blob(["\uFEFF" + lines.join("\n")], {type: "text/csv;charset=utf-8;"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${S.ind.id}_datos.csv`;
+  a.click();
+}
+
+// ═══════════════════════════════════════════════════
+// FILTERS
+// ═══════════════════════════════════════════════════
+function setupFilters(){
+  const fd = document.getElementById("f-dpto");
+  const fm = document.getElementById("f-mpio");
+  const yf = document.getElementById("yr-from");
+  const yt = document.getElementById("yr-to");
+
+  function buildMpios(dpto){
+    fm.innerHTML = `<option value="">Todos los Municipios</option>`;
+    const feats = (S.geo.features || []).filter(f => !dpto || String(f.properties.codigo_dpto) === dpto);
+    feats.sort((a, b) => a.properties.nombre_mpio.localeCompare(b.properties.nombre_mpio));
+    feats.forEach(f => {
+      const p = f.properties;
+      fm.innerHTML += `<option value="${p.codigo_mpio}">${p.nombre_mpio}</option>`;
+    });
+  }
+  buildMpios("");
+
+  fd.onchange = () => {
+    S.dpto = fd.value;
+    buildMpios(fd.value);
+    S.mpio = "";
+    fm.value = "";
+    refresh();
+  };
+  fm.onchange = () => {
+    S.mpio = fm.value;
+    refresh();
+  };
+
+  function syncYears(){
+    if(+yf.value > +yt.value) yt.value = yf.value;
+    if(+yt.value < +yf.value) yf.value = yt.value;
+    S.yFrom = +yf.value;
+    S.yTo   = +yt.value;
+    document.getElementById("y-from").textContent = yf.value;
+    document.getElementById("y-to").textContent   = yt.value;
+  }
+  yf.oninput = () => { syncYears(); refresh(); };
+  yt.oninput = () => { syncYears(); refresh(); };
+  syncYears();
+
+  document.getElementById("btn-reset").onclick = () => {
+    fd.value = "";
+    fm.value = "";
+    yf.value = 2000;
+    yt.value = 2025;
+    S.dpto = "";
+    S.mpio = "";
+    buildMpios("");
+    syncYears();
+    refresh();
+  };
+}
+
+function refresh(){ if(S.dim && S.ind) renderIndicator(); }
+
+// ═══════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════
+function fmt(v){
+  if(v == null || isNaN(v)) return "—";
+  const n = +v;
+  if(Math.abs(n) >= 1e6) return (n / 1e6).toFixed(1) + "M";
+  if(Math.abs(n) >= 1e3) return (n / 1e3).toFixed(1) + "K";
+  if(Number.isInteger(n)) return n.toLocaleString("es-CO");
+  return n.toFixed(2).replace(/\.?0+$/, "");
+}
+
+window.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
 </html>
