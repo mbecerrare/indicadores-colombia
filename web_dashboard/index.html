@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indicadores Putumayo · Cesar · La Guajira</title>
+<meta name="description" content="Dashboard interactivo de indicadores sociales, económicos y ambientales para Putumayo, Cesar y La Guajira, Colombia.">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#1B828B;--amber:#F6AB36;--gray:#606060;--red:#EB595D;--silver:#D9D9D9;
+  --bg:#0D1B1C;--surface:#122729;--card:#1A3537;--border:#234547;
+  --text:#E8F4F5;--muted:#8EAAAC;--radius:12px;--shadow:0 4px 20px rgba(0,0,0,.4);
+}
+html{font-size:14px}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* HEADER */
+header{background:linear-gradient(135deg,var(--surface) 0%,#0e2224 100%);border-bottom:2px solid var(--teal);padding:0 24px;height:64px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:1000;box-shadow:0 2px 16px rgba(0,0,0,.5)}
+.logo{width:38px;height:38px;background:linear-gradient(135deg,var(--teal),var(--amber));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;flex-shrink:0}
+header h1{font-size:1.1rem;font-weight:700;background:linear-gradient(90deg,var(--text),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;flex:1}
+.hbadge{font-size:.72rem;padding:4px 10px;background:rgba(27,130,139,.2);border:1px solid var(--teal);border-radius:20px;color:var(--teal);white-space:nowrap}
+
+/* FILTER BAR */
+.fbar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.flabel{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+select{background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:8px;font-size:.85rem;cursor:pointer;transition:border-color .2s;outline:none}
+select:hover,select:focus{border-color:var(--teal)}
+.fdiv{width:1px;height:24px;background:var(--border)}
+input[type=range]{-webkit-appearance:none;width:90px;height:4px;background:var(--border);border-radius:2px;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--teal);border-radius:50%}
+.ydisplay{min-width:40px;text-align:center;font-weight:700;color:var(--amber);font-size:.85rem}
+.btn-reset{margin-left:auto;background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:.8rem;transition:all .2s}
+.btn-reset:hover{border-color:var(--red);color:var(--red)}
+
+/* TABS */
+.tabs-wrap{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;overflow-x:auto}
+.tabs{display:flex;list-style:none;min-width:max-content}
+.tab-btn{padding:12px 16px;background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:.82rem;font-weight:500;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.tab-btn:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.tab-btn.active{color:var(--teal);border-bottom-color:var(--teal);background:rgba(27,130,139,.08)}
+
+/* MAIN */
+main{padding:18px 24px;display:flex;flex-direction:column;gap:14px}
+
+/* INDICATOR ROW */
+.ind-row{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.ind-sel-wrap{flex:0 0 300px}
+.ind-sel-wrap label{display:block;font-size:.72rem;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em}
+#indicator-select{width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-size:.85rem;cursor:pointer}
+#indicator-select:focus{border-color:var(--teal);outline:none}
+
+/* FICHA */
+.ficha{background:var(--card);border:1px solid var(--border);border-left:4px solid var(--teal);border-radius:var(--radius);padding:14px 18px;flex:1;min-width:260px;display:none}
+.ficha.visible{display:block}
+.ficha-title{font-size:.92rem;font-weight:700;color:var(--teal);margin-bottom:5px}
+.ficha-def{font-size:.78rem;color:var(--muted);line-height:1.5;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:8px}
+.ficha-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px 14px}
+.fi{font-size:.76rem}.fi strong{display:block;color:var(--muted);font-size:.68rem;text-transform:uppercase}
+.fi a{color:var(--amber);text-decoration:none}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;transition:transform .2s,box-shadow .2s}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.stat-label{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+.stat-value{font-size:1.5rem;font-weight:800;color:var(--amber);line-height:1}
+.stat-sub{font-size:.68rem;color:var(--muted);margin-top:3px}
+.stat-card.teal .stat-value{color:var(--teal)}.stat-card.red .stat-value{color:var(--red)}
+
+/* CONTENT GRID */
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:860px){.cgrid{grid-template-columns:1fr}}
+
+/* CARD */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+.card-header{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.15)}
+.card-title{font-size:.85rem;font-weight:600;color:var(--text)}
+.card-sub{font-size:.7rem;color:var(--muted)}
+.card-body{padding:14px}
+
+/* MAP */
+#map{height:340px;background:#0a1f20}
+.leaflet-container{background:#0a1f20!important}
+.map-leg{padding:7px 12px;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.leg-bar{height:7px;border-radius:4px;flex:1;background:linear-gradient(90deg,#D9D9D9,#1B828B)}
+.leg-val{font-size:.7rem;color:var(--muted);white-space:nowrap}
+
+/* CHART */
+.chart-wrap{position:relative;height:300px}
+
+/* TABLE */
+.tbl-wrap{overflow:auto;max-height:300px}
+table{width:100%;border-collapse:collapse;font-size:.78rem}
+thead th{background:var(--surface);color:var(--muted);padding:7px 11px;text-align:left;position:sticky;top:0;z-index:1;font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border)}
+tbody tr{border-bottom:1px solid var(--border);transition:background .15s}
+tbody tr:hover{background:rgba(27,130,139,.1)}
+tbody td{padding:7px 11px;color:var(--text)}
+.vp{color:var(--teal);font-weight:600}.vn{color:var(--red);font-weight:600}
+.tbl-search{padding:8px 12px;border-bottom:1px solid var(--border)}
+.tbl-search input{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:.78rem}
+.tbl-search input:focus{border-color:var(--teal);outline:none}
+
+/* EXPORT BTN */
+.btn-exp{background:transparent;border:1px solid var(--teal);color:var(--teal);padding:4px 11px;border-radius:6px;cursor:pointer;font-size:.72rem;transition:all .2s}
+.btn-exp:hover{background:var(--teal);color:#fff}
+
+/* LOADING */
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:16px}
+.spinner{width:44px;height:44px;border:4px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-txt{color:var(--muted);font-size:.88rem}
+.dim-loading{display:flex;align-items:center;justify-content:center;height:200px;color:var(--muted);font-size:.85rem;gap:10px}
+.dim-spinner{width:22px;height:22px;border:3px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--teal)}
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div><div class="load-txt" id="load-msg">Cargando catálogo...</div></div>
+
+<header>
+  <div class="logo">📊</div>
+  <h1>Indicadores — Putumayo · Cesar · La Guajira</h1>
+  <span class="hbadge" id="badge">Cargando...</span>
+</header>
+
+<div class="fbar">
+  <span class="flabel">Departamento</span>
+  <select id="f-dpto">
+    <option value="">Todos</option>
+    <option value="20">Cesar</option>
+    <option value="44">La Guajira</option>
+    <option value="86">Putumayo</option>
+  </select>
+  <div class="fdiv"></div>
+  <span class="flabel">Municipio</span>
+  <select id="f-mpio"><option value="">Todos</option></select>
+  <div class="fdiv"></div>
+  <span class="flabel">Años</span>
+  <span class="ydisplay" id="y-from">2000</span>
+  <input type="range" id="yr-from" min="1990" max="2025" value="2000">
+  <span class="flabel">—</span>
+  <input type="range" id="yr-to"   min="1990" max="2025" value="2025">
+  <span class="ydisplay" id="y-to">2025</span>
+  <button class="btn-reset" id="btn-reset">↺ Resetear</button>
+</div>
+
+<div class="tabs-wrap"><ul class="tabs" id="tabs"></ul></div>
+<main id="main"></main>
+
+<script>
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+const S = {
+  meta: null, geo: null,
+  dimCache: {},          // loaded dim data cache
+  dimMap: {},            // dim name -> filename
+  dim: null, ind: null,
+  dpto:"", mpio:"", yFrom:2000, yTo:2025,
+  chart: null, map: null, mapLayer: null,
+};
+const DPTO = {20:"Cesar",44:"La Guajira",86:"Putumayo"};
+const ICONS = {
+  "Demografía":"👥","Ambiente":"🌿","Economía":"💰",
+  "Empleo/Economía":"💼","Educación":"📚","Gobernanza":"🏛",
+  "Salud":"❤️","Seguridad":"🔒","Servicios":"🏗"
+};
+let MPIO_NAMES = {};
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+async function init(){
+  try{
+    setMsg("Cargando catálogo...");
+    const [metaR, geoR, mapR] = await Promise.all([
+      fetch("data/meta.json"),
+      fetch("data/municipios_3dptos.geojson"),
+      fetch("data/dim_map.json"),
+    ]);
+    S.meta   = await metaR.json();
+    S.geo    = await geoR.json();
+    S.dimMap = await mapR.json();
+
+    // Municipality names
+    Object.assign(MPIO_NAMES, S.meta.meta.municipios||{});
+    (S.geo.features||[]).forEach(f=>{
+      const p=f.properties;
+      MPIO_NAMES[p.codigo_mpio]=p.nombre_mpio;
+    });
+
+    buildTabs();
+    setupFilters();
+    document.getElementById("badge").textContent =
+      `${S.meta.meta.total_indicadores} indicadores · ${Object.keys(S.meta.dimensiones).length} dimensiones`;
+    document.getElementById("loading").style.display="none";
+    // Click first tab
+    document.querySelector(".tab-btn")?.click();
+  } catch(e){
+    setMsg("Error: "+e.message+" — Verifica que los archivos estén en la carpeta data/");
+    console.error(e);
+  }
+}
+function setMsg(m){ document.getElementById("load-msg").textContent=m; }
+
+// ═══════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════
+function buildTabs(){
+  const ul=document.getElementById("tabs");
+  Object.keys(S.meta.dimensiones).forEach((dim,i)=>{
+    const li=document.createElement("li");
+    const btn=document.createElement("button");
+    btn.className="tab-btn"+(i===0?" active":"");
+    btn.dataset.dim=dim;
+    const n=S.meta.dimensiones[dim].total_registros.toLocaleString("es-CO");
+    btn.innerHTML=`<span>${ICONS[dim]||"📊"}</span> ${dim} <span style="font-size:.68rem;color:var(--muted)">(${n})</span>`;
+    btn.onclick=()=>selectDim(dim,btn);
+    li.appendChild(btn);
+    ul.appendChild(li);
+  });
+}
+
+async function selectDim(dim,btn){
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  S.dim=dim; S.ind=null;
+  renderShell(dim);
+  await loadDimData(dim);
+  populateIndicatorSelect(dim);
+}
+
+async function loadDimData(dim){
+  if(S.dimCache[dim]) return;
+  const fname=S.dimMap[dim];
+  if(!fname) return;
+  showDimLoading(true);
+  const r=await fetch("data/"+fname);
+  const d=await r.json();
+  S.dimCache[dim]=d.datos;
+  showDimLoading(false);
+}
+function showDimLoading(v){
+  const el=document.getElementById("dim-loading");
+  if(el) el.style.display=v?"flex":"none";
+}
+
+// ═══════════════════════════════════════════════════
+// SHELL (static structure of a dimension view)
+// ═══════════════════════════════════════════════════
+function renderShell(dim){
+  const m=document.getElementById("main");
+  m.innerHTML=`
+  <div class="ind-row">
+    <div class="ind-sel-wrap">
+      <label>Indicador</label>
+      <select id="indicator-select"><option value="">-- Elige un indicador --</option></select>
+    </div>
+    <div class="ficha" id="ficha"></div>
+  </div>
+  <div class="dim-loading" id="dim-loading" style="display:none">
+    <div class="dim-spinner"></div> Cargando datos de ${dim}...
+  </div>
+  <div class="stats-row" id="stats"></div>
+  <div class="cgrid">
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">Mapa Coroplético</div><div class="card-sub" id="map-sub">Selecciona un indicador</div></div>
+      </div>
+      <div id="map"></div>
+      <div class="map-leg">
+        <span class="leg-val" id="leg-min">—</span>
+        <div class="leg-bar"></div>
+        <span class="leg-val" id="leg-max">—</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title" id="chart-title">Gráfico</div><div class="card-sub" id="chart-sub">Selecciona un indicador</div></div>
+        <button class="btn-exp" id="btn-csv">⬇ CSV</button>
+      </div>
+      <div class="card-body"><div class="chart-wrap"><canvas id="main-chart"></canvas></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-title">Tabla de Datos</div><button class="btn-exp" id="btn-csv2">⬇ CSV</button></div>
+    <div class="tbl-search"><input type="text" id="tbl-search" placeholder="Buscar en tabla..."></div>
+    <div class="tbl-wrap"><table id="dtable"><thead><tr></tr></thead><tbody></tbody></table></div>
+  </div>`;
+
+  document.getElementById("btn-csv")?.addEventListener("click",doExport);
+  document.getElementById("btn-csv2")?.addEventListener("click",doExport);
+  document.getElementById("tbl-search")?.addEventListener("input",e=>searchTable(e.target.value));
+  initMap();
+}
+
+// ═══════════════════════════════════════════════════
+// INDICATOR SELECT
+// ═══════════════════════════════════════════════════
+function populateIndicatorSelect(dim){
+  const sel=document.getElementById("indicator-select");
+  if(!sel) return;
+  sel.innerHTML=`<option value="">-- Elige un indicador --</option>`;
+  const cat=S.meta.dimensiones[dim]?.catalogo_indicadores||[];
+  cat.forEach(ind=>{
+    const o=document.createElement("option");
+    o.value=ind.id;
+    o.textContent=`[${ind.id}] ${ind.nombre}`;
+    sel.appendChild(o);
+  });
+  sel.onchange=()=>{
+    const id=sel.value; if(!id) return;
+    S.ind=cat.find(i=>i.id===id);
+    renderIndicator();
+  };
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER INDICATOR
+// ═══════════════════════════════════════════════════
+function renderIndicator(){
+  if(!S.ind||!S.dim) return;
+  const rows=filtered();
+  renderFicha(S.ind);
+  renderStats(rows,S.ind);
+  const yrs=[...new Set(rows.map(r=>r.anio).filter(Boolean))].sort();
+  if(yrs.length>1) renderLine(rows,S.ind,yrs);
+  else             renderBar(rows,S.ind);
+  updateMap(rows,S.ind);
+  renderTable(rows,S.ind);
+}
+
+function filtered(){
+  const all=S.dimCache[S.dim]||[];
+  return all.filter(r=>{
+    if(r.id_indicador!==S.ind?.id) return false;
+    if(S.dpto && String(r.codigo_dpto)!==S.dpto) return false;
+    if(S.mpio && String(r.codigo_mpio)!==S.mpio) return false;
+    if(r.anio!=null && (r.anio<S.yFrom||r.anio>S.yTo)) return false;
+    return true;
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// FICHA
+// ═══════════════════════════════════════════════════
+function renderFicha(ind){
+  const el=document.getElementById("ficha");
+  if(!el) return;
+  el.className="ficha visible";
+  el.innerHTML=`
+    <div class="ficha-title">${ind.nombre} <span style="color:var(--muted);font-size:.75rem">(${ind.id})</span></div>
+    <div class="ficha-def">${ind.definicion||"Sin definición."}</div>
+    <div class="ficha-grid">
+      <div class="fi"><strong>Unidad</strong>${ind.unidad||"N/D"}</div>
+      <div class="fi"><strong>Frecuencia</strong>${ind.frecuencia||"N/D"}</div>
+      <div class="fi"><strong>Fuente</strong>${ind.fuente||"N/D"}</div>
+      <div class="fi"><strong>Enlace</strong>${ind.enlace?`<a href="${ind.enlace}" target="_blank">🔗 Ver fuente</a>`:"N/D"}</div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════════════════
+function renderStats(rows,ind){
+  const el=document.getElementById("stats");
+  if(!el) return;
+  const vals=rows.map(r=>+r.valor).filter(v=>!isNaN(v));
+  const yrs=[...new Set(rows.map(r=>r.anio).filter(Boolean))].sort();
+  const mpios=[...new Set(rows.map(r=>r.codigo_mpio).filter(Boolean))];
+  const avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
+  el.innerHTML=`
+    <div class="stat-card teal"><div class="stat-label">Registros</div><div class="stat-value">${rows.length.toLocaleString()}</div><div class="stat-sub">filas</div></div>
+    <div class="stat-card"><div class="stat-label">Municipios</div><div class="stat-value">${mpios.length}</div><div class="stat-sub">con datos</div></div>
+    <div class="stat-card"><div class="stat-label">Promedio</div><div class="stat-value">${avg!=null?fmt(avg):"—"}</div><div class="stat-sub">${ind.unidad||""}</div></div>
+    <div class="stat-card"><div class="stat-label">Mínimo</div><div class="stat-value">${vals.length?fmt(Math.min(...vals)):"—"}</div><div class="stat-sub">${ind.unidad||""}</div></div>
+    <div class="stat-card"><div class="stat-label">Máximo</div><div class="stat-value">${vals.length?fmt(Math.max(...vals)):"—"}</div><div class="stat-sub">${ind.unidad||""}</div></div>
+    <div class="stat-card"><div class="stat-label">Período</div><div class="stat-value" style="font-size:1rem">${yrs.length?yrs[0]+"–"+yrs[yrs.length-1]:"—"}</div><div class="stat-sub">${yrs.length} años</div></div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════════════
+function killChart(){if(S.chart){S.chart.destroy();S.chart=null;}}
+const CLR=["#1B828B","#F6AB36","#EB595D","#7CB9BE","#F9D27C","#9ED5D8"];
+
+function renderLine(rows,ind,yrs){
+  killChart();
+  document.getElementById("chart-title").textContent="Serie Temporal";
+  document.getElementById("chart-sub").textContent=ind.unidad||"";
+  const byDpto={};
+  rows.forEach(r=>{
+    const d=DPTO[r.codigo_dpto]||String(r.codigo_dpto);
+    if(!byDpto[d]) byDpto[d]={};
+    if(!byDpto[d][r.anio]) byDpto[d][r.anio]=[];
+    if(r.valor!=null) byDpto[d][r.anio].push(+r.valor);
+  });
+  const ds=Object.keys(byDpto).map((lbl,i)=>({
+    label:lbl,
+    data:yrs.map(y=>{const a=(byDpto[lbl][y]||[]).filter(v=>!isNaN(v));return a.length?a.reduce((x,b)=>x+b,0)/a.length:null;}),
+    borderColor:CLR[i%CLR.length],backgroundColor:CLR[i%CLR.length]+"22",
+    tension:.4,pointRadius:3,pointHoverRadius:6,fill:false,spanGaps:true,
+  }));
+  S.chart=new Chart(document.getElementById("main-chart").getContext("2d"),{
+    type:"line",data:{labels:yrs,datasets:ds},
+    options:cOpts(ind.unidad||""),
+  });
+}
+
+function renderBar(rows,ind){
+  killChart();
+  document.getElementById("chart-title").textContent="Distribución por Categoría";
+  document.getElementById("chart-sub").textContent=ind.unidad||"";
+  const catM={};
+  rows.forEach(r=>{const c=r.categoria||"N/D";if(!catM[c])catM[c]=[];if(r.valor!=null)catM[c].push(+r.valor);});
+  const labs=Object.keys(catM).slice(0,20);
+  const vals=labs.map(c=>{const a=catM[c].filter(v=>!isNaN(v));return a.length?a.reduce((x,b)=>x+b,0)/a.length:0;});
+  const horiz=labs.length>5;
+  S.chart=new Chart(document.getElementById("main-chart").getContext("2d"),{
+    type:"bar",
+    data:{labels:labs,datasets:[{label:ind.unidad||"Valor",data:vals,
+      backgroundColor:vals.map(v=>v>=0?"#1B828BBB":"#EB595DBB"),
+      borderColor:vals.map(v=>v>=0?"#1B828B":"#EB595D"),borderWidth:1,borderRadius:4}]},
+    options:{...cOpts(ind.unidad||"",horiz),indexAxis:horiz?"y":"x",plugins:{legend:{display:false},tooltip:{
+      backgroundColor:"#1A3537",titleColor:"#E8F4F5",bodyColor:"#8EAAAC",borderColor:"#234547",borderWidth:1,
+      callbacks:{label:c=>` ${fmt(c.parsed[horiz?"x":"y"])} ${ind.unidad||""}`}
+    }}},
+  });
+}
+
+function cOpts(unit="",horiz=false){
+  const sc={ticks:{color:"#8EAAAC",font:{size:10}},grid:{color:"#1D3D3F"}};
+  return{responsive:true,maintainAspectRatio:false,
+    interaction:{intersect:false,mode:"index"},
+    plugins:{legend:{labels:{color:"#8EAAAC",font:{size:11}}},
+      tooltip:{backgroundColor:"#1A3537",titleColor:"#E8F4F5",bodyColor:"#8EAAAC",borderColor:"#234547",borderWidth:1}},
+    scales:{x:{...sc},y:{...sc,title:{display:!!unit,text:unit,color:"#606060",font:{size:10}}}}
+  };
+}
+
+// ═══════════════════════════════════════════════════
+// MAP
+// ═══════════════════════════════════════════════════
+function initMap(){
+  if(S.map){S.map.remove();S.map=null;}
+  S.map=L.map("map",{center:[7.5,-73.8],zoom:5,zoomControl:true,attributionControl:false});
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
+    {subdomains:"abcd",maxZoom:19}).addTo(S.map);
+  if(S.geo){
+    S.mapLayer=L.geoJSON(S.geo,{
+      style:{color:"#234547",weight:1,fillColor:"#1A3537",fillOpacity:.6},
+      onEachFeature:(f,l)=>{
+        l.on("mouseover",function(){this.setStyle({weight:2,fillOpacity:.9});});
+        l.on("mouseout", function(){S.mapLayer.resetStyle(this);});
+      }
+    }).addTo(S.map);
+    try{S.map.fitBounds(S.mapLayer.getBounds(),{padding:[20,20]});}catch(e){}
+  }
+}
+
+function updateMap(rows,ind){
+  if(!S.map||!S.mapLayer) return;
+  const agg={};
+  rows.forEach(r=>{if(!r.codigo_mpio) return;if(!agg[r.codigo_mpio])agg[r.codigo_mpio]=[];if(r.valor!=null)agg[r.codigo_mpio].push(+r.valor);});
+  const avgs={};
+  Object.keys(agg).forEach(mp=>{const a=agg[mp].filter(v=>!isNaN(v));avgs[mp]=a.length?a.reduce((x,b)=>x+b,0)/a.length:null;});
+  const vals=Object.values(avgs).filter(v=>v!=null);
+  const mn=Math.min(...vals), mx=Math.max(...vals);
+  document.getElementById("leg-min").textContent=vals.length?fmt(mn):"—";
+  document.getElementById("leg-max").textContent=vals.length?fmt(mx):"—";
+  function col(v){
+    if(v==null||isNaN(v)) return"#1A3537";
+    const t=mx===mn?.5:(v-mn)/(mx-mn);
+    return`rgb(${Math.round(0xD9+t*(0x1B-0xD9))},${Math.round(0xD9+t*(0x82-0xD9))},${Math.round(0xD9+t*(0x8B-0xD9))})`;
+  }
+  S.mapLayer.setStyle(f=>{const v=avgs[f.properties.codigo_mpio];return{fillColor:col(v),fillOpacity:v!=null?.85:.3,color:"#234547",weight:1};});
+  S.mapLayer.eachLayer(l=>{
+    const p=l.feature.properties;
+    const v=avgs[p.codigo_mpio];
+    l.unbindPopup();
+    l.bindPopup(`<div style="font-family:sans-serif;font-size:13px"><b>${p.nombre_mpio}</b><br>${ind.nombre}<br><span style="color:#1B828B;font-weight:700;font-size:15px">${v!=null?fmt(v):"Sin datos"}</span>${ind.unidad?`<span style="font-size:11px;color:#606060"> ${ind.unidad}</span>`:""}</div>`);
+  });
+  document.getElementById("map-sub").textContent=`Promedio por municipio · ${ind.unidad||""}`;
+}
+
+// ═══════════════════════════════════════════════════
+// TABLE
+// ═══════════════════════════════════════════════════
+let _trows=[];
+const TCOLS=["anio","codigo_dpto","codigo_mpio","categoria","valor","porcentaje"];
+const THEAD={anio:"Año",codigo_dpto:"Departamento",codigo_mpio:"Municipio",categoria:"Categoría",valor:"Valor",porcentaje:"%"};
+
+function renderTable(rows,ind){
+  _trows=rows;
+  const t=document.getElementById("dtable");
+  if(!t) return;
+  t.querySelector("thead tr").innerHTML=TCOLS.map(c=>`<th>${c==="valor"?(ind.unidad||"Valor"):THEAD[c]}</th>`).join("");
+  fillTbody(rows.slice(0,500));
+}
+
+function fillTbody(rows){
+  const tb=document.querySelector("#dtable tbody");
+  if(!tb) return;
+  tb.innerHTML=rows.map(r=>`<tr>${TCOLS.map(c=>{
+    let v=r[c];
+    if(c==="codigo_dpto") v=DPTO[v]||v;
+    if(c==="codigo_mpio") v=MPIO_NAMES[v]||v;
+    if((c==="valor"||c==="porcentaje")&&v!=null){const n=+v;if(!isNaN(n))return`<td class="${n<0?"vn":""}">${fmt(n)}</td>`;}
+    return`<td>${v!=null?v:"—"}</td>`;
+  }).join("")}</tr>`).join("");
+}
+
+function searchTable(q){
+  if(!q){fillTbody(_trows.slice(0,500));return;}
+  const ql=q.toLowerCase();
+  fillTbody(_trows.filter(r=>JSON.stringify(r).toLowerCase().includes(ql)).slice(0,500));
+}
+
+// ═══════════════════════════════════════════════════
+// EXPORT CSV
+// ═══════════════════════════════════════════════════
+function doExport(){
+  if(!S.ind){alert("Selecciona un indicador primero.");return;}
+  const rows=filtered();
+  if(!rows.length){alert("Sin datos con los filtros actuales.");return;}
+  const hdr=["id_indicador","anio","departamento","municipio","categoria","valor","porcentaje"];
+  const lines=[hdr.join(","),...rows.map(r=>[
+    r.id_indicador,r.anio,
+    DPTO[r.codigo_dpto]||r.codigo_dpto,
+    MPIO_NAMES[r.codigo_mpio]||r.codigo_mpio,
+    `"${(r.categoria||"").replace(/"/g,'""')}"`,
+    r.valor??'',r.porcentaje??''
+  ].join(","))];
+  const blob=new Blob(["\uFEFF"+lines.join("\n")],{type:"text/csv;charset=utf-8;"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download=`${S.ind.id}_datos.csv`;a.click();
+}
+
+// ═══════════════════════════════════════════════════
+// FILTERS
+// ═══════════════════════════════════════════════════
+function setupFilters(){
+  const fd=document.getElementById("f-dpto");
+  const fm=document.getElementById("f-mpio");
+  const yf=document.getElementById("yr-from");
+  const yt=document.getElementById("yr-to");
+
+  function buildMpios(dpto){
+    fm.innerHTML=`<option value="">Todos</option>`;
+    const feats=(S.geo.features||[]).filter(f=>!dpto||String(f.properties.codigo_dpto)===dpto);
+    feats.sort((a,b)=>a.properties.nombre_mpio.localeCompare(b.properties.nombre_mpio));
+    feats.forEach(f=>{
+      const p=f.properties;
+      fm.innerHTML+=`<option value="${p.codigo_mpio}">${p.nombre_mpio}</option>`;
+    });
+  }
+  buildMpios("");
+
+  fd.onchange=()=>{S.dpto=fd.value;buildMpios(fd.value);S.mpio="";fm.value="";refresh();};
+  fm.onchange=()=>{S.mpio=fm.value;refresh();};
+
+  function syncYears(){
+    if(+yf.value>+yt.value) yt.value=yf.value;
+    if(+yt.value<+yf.value) yf.value=yt.value;
+    S.yFrom=+yf.value;S.yTo=+yt.value;
+    document.getElementById("y-from").textContent=yf.value;
+    document.getElementById("y-to").textContent=yt.value;
+  }
+  yf.oninput=()=>{syncYears();refresh();};
+  yt.oninput=()=>{syncYears();refresh();};
+  syncYears();
+
+  document.getElementById("btn-reset").onclick=()=>{
+    fd.value="";fm.value="";yf.value=2000;yt.value=2025;
+    S.dpto="";S.mpio="";buildMpios("");syncYears();refresh();
+  };
+}
+
+function refresh(){if(S.dim&&S.ind) renderIndicator();}
+
+// ═══════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════
+function fmt(v){
+  if(v==null||isNaN(v)) return"—";
+  const n=+v;
+  if(Math.abs(n)>=1e6) return(n/1e6).toFixed(1)+"M";
+  if(Math.abs(n)>=1e3) return(n/1e3).toFixed(1)+"K";
+  if(Number.isInteger(n)) return n.toLocaleString("es-CO");
+  return n.toFixed(2).replace(/\.?0+$/,"");
+}
+
+window.addEventListener("DOMContentLoaded",init);
+</script>
+</body>
+</html>
