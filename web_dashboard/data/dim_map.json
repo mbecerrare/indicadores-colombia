@@ -1,1 +1,11 @@
-{"Demografía": "dim_demografía.json", "Ambiente": "dim_ambiente.json", "Economía": "dim_economía.json", "Empleo/Economía": "dim_empleo_economía.json", "Educación": "dim_educación.json", "Gobernanza": "dim_gobernanza.json", "Salud": "dim_salud.json", "Seguridad": "dim_seguridad.json", "Servicios": "dim_servicios.json"}
+{
+  "Demografía": "dim_demografia.json",
+  "Ambiente": "dim_ambiente.json",
+  "Economía": "dim_economia.json",
+  "Empleo/Economía": "dim_empleo_economia.json",
+  "Educación": "dim_educacion.json",
+  "Gobernanza": "dim_gobernanza.json",
+  "Salud": "dim_salud.json",
+  "Seguridad": "dim_seguridad.json",
+  "Servicios": "dim_servicios.json"
+}
